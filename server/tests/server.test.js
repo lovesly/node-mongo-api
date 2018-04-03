@@ -6,8 +6,29 @@ const request = require('supertest');
 const { app } = require('./../server');
 const { Todo } = require('./../models/todo');
 
-beforeEach((done) => {
-    Todo.remove({}).then(() => done());
+const todos = [{
+    text: 'First test todo',
+}, {
+    text: 'Second test todo',
+}];
+
+// eslint-disable-next-line
+beforeEach(function(done) {
+    // I'm superised that insert 2 docs cost more than 2000ms
+    // actually remove cost 1050ms, insert cost 1034ms.
+    this.timeout(5000);
+    const st1 = new Date().getTime();
+    let st2;
+    let st3;
+    Todo.remove({}).then(() => {
+        st2 = new Date().getTime();
+        console.log(st2 - st1);
+        return Todo.insertMany(todos);
+    }).then(() => {
+        st3 = new Date().getTime();
+        console.log(st3 - st2);
+        done();
+    });
 });
 
 describe('POST /todos', () => {
@@ -25,7 +46,7 @@ describe('POST /todos', () => {
                     return done(err);
                 }
                 // why do we put the test inside end block?
-                Todo.find().then((todos) => {
+                Todo.find({ text }).then((todos) => {
                     expect(todos.length).toBe(1);
                     expect(todos[0].text).toBe(text);
                     done();
@@ -43,10 +64,22 @@ describe('POST /todos', () => {
                     return done(err);
                 }
                 Todo.find().then((todos) => {
-                    expect(todos.length).toBe(0);
+                    expect(todos.length).toBe(2);
                     done();
                 }).catch(err => done(err));
             });
+    });
+});
+
+describe('GET /todos', () => {
+    it('should get all todos', (done) => {
+        request(app)
+            .get('/todos')
+            .expect(200)
+            .expect((res) => {
+                expect(res.body.todos.length).toBe(2);
+            })
+            .end(done);
     });
 });
 
