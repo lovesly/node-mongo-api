@@ -1,5 +1,5 @@
 // expect package is donated to jest(wtf...)
-// refactor the test with jest.
+// need to refactor the test with jest.
 const expect = require('expect');
 const request = require('supertest');
 
