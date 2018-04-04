@@ -9,9 +9,6 @@ const { User } = require('./models/user');
 const app = express();
 const port = 3001;
 
-// another question, where did we set collection name 'todos'??
-
-// interesting, how to use middle ware
 app.use(bodyParser.json());
 
 app.post('/todos', (req, res) => {
