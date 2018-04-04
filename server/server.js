@@ -7,7 +7,8 @@ const { Todo } = require('./models/todo');
 const { User } = require('./models/user');
 
 const app = express();
-const port = 3001;
+// port set up for Heroku
+const port = process.env.PORT || 3001;
 
 app.use(bodyParser.json());
 
