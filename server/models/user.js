@@ -39,11 +39,9 @@ UserSchema.methods.generateAuthToken = function() {
     const user = this;
     const access = 'auth';
     const token = jwt.sign({ _id: user._id.toHexString(), access }, 'abc123').toString();
-    console.log(token);
     // user.tokens.push(token);
     // interesting, tokens add a _id automatically.
     user.tokens = user.tokens.concat([{ access, token }]);
-    console.log(user.tokens);
     return user.save().then(() => {
         return token;
     });
@@ -56,6 +54,25 @@ UserSchema.methods.toJSON = function() {
     const userObject = user.toObject();
 
     return _.pick(userObject, ['_id', 'email']);
+};
+
+// eslint-disable-next-line
+UserSchema.statics.findByToken = function(token) {
+    const User = this;
+    let decoded;
+    try {
+        decoded = jwt.verify(token, 'abc123');
+    } catch (e) {
+        console.log(e);
+        return Promise.reject();
+    }
+    // I believe, mongoose findOne will call the built in toJSON method.
+    // so we are actually override the toJSON method to hide some data.
+    return User.findOne({
+        _id: decoded._id,
+        'tokens.token': token,
+        'tokens.access': 'auth',
+    });
 };
 
 const User = mongoose.model('User', UserSchema);

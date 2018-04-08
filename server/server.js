@@ -7,6 +7,7 @@ const { ObjectID } = require('mongodb');
 const { mongoose } = require('./db/mongoose');
 const { Todo } = require('./models/todo');
 const { User } = require('./models/user');
+const { authenticate } = require('./middleware/authenticate');
 
 const app = express();
 // port set up for Heroku
@@ -96,7 +97,6 @@ app.patch('/todos/:id', (req, res) => {
  *  post
  */
 app.post('/users', (req, res) => {
-    console.log(req.body);
     const body = _.pick(req.body, ['email', 'password']);
     const user = new User(body);
 
@@ -105,6 +105,12 @@ app.post('/users', (req, res) => {
     }).then((token) => {
         res.header('x-auth', token).send(user.toJSON());
     }).catch(err => res.status(400).send(err));
+});
+
+// use authenticate middleware
+// header: x-auth token
+app.get('/users/me', authenticate, (req, res) => {
+    res.send(req.user);
 });
 
 app.listen(port, () => {
