@@ -6,35 +6,10 @@ const { ObjectID } = require('mongodb');
 
 const { app } = require('./../server');
 const { Todo } = require('./../models/todo');
+const { todos, populateTodos, users, populateUsers } = require('./seed/seed'); 
 
-const todos = [{
-    _id: new ObjectID(),
-    text: 'First test todo',
-}, {
-    _id: new ObjectID(),
-    text: 'Second test todo V2',
-    completed: true,
-    completedAt: 123,
-}];
-
-// eslint-disable-next-line
-beforeEach(function(done) {
-    // I'm superised that insert 2 docs cost more than 2000ms
-    // actually remove cost 1050ms, insert cost 1034ms.
-    this.timeout(5000);
-    const st1 = new Date().getTime();
-    let st2;
-    let st3;
-    Todo.remove({}).then(() => {
-        st2 = new Date().getTime();
-        // console.log(st2 - st1);
-        return Todo.insertMany(todos);
-    }).then(() => {
-        st3 = new Date().getTime();
-        // console.log(st3 - st2);
-        done();
-    });
-});
+beforeEach(populateUsers);
+beforeEach(populateTodos);
 
 describe('POST /todos', () => {
     it('should create a new todo', (done) => {
@@ -188,6 +163,69 @@ describe('PATCH /todos/:id', () => {
                 expect(res.body.todo.completed).toBe(false);
                 expect(res.body.todo.completedAt).toBeNull();
             })
+            .end(done);
+    });
+});
+
+describe('GET /users/me', () => {
+    it('should return user if authenticated', (done) => {
+        request(app)
+            .get('/users/me')
+            .set('x-auth', users[0].tokens[0].token)
+            .expect(200)
+            .expect((res) => {
+                expect(res.body._id).toBe(users[0]._id.toHexString());
+            })
+            .end(done);
+    });
+
+    it('should return 401 if not authenticated', (done) => {
+        request(app)
+            .get('/users/me')
+            .expect(401)
+            .expect((res) => {
+                expect(res.body).toEqual({});
+            })
+            .end(done);
+    });
+});
+
+describe('POST /users', () => {
+    it('should create a user', (done) => {
+        const email = 'example@outlook.com';
+        const password = '123mmp';
+        request(app)
+            .post('/users')
+            .send({
+                email,
+                password,
+            })
+            .expect(200)
+            .expect((res) => {
+                expect(res.headers['x-auth']).toBeTruthy();
+                expect(res.body._id).toBeTruthy();
+                expect(res.body.email).toBe(email);
+            })
+            .end(done);
+    });
+
+    it('should return validation errors if request invalid', (done) => {
+        const email = 'someemail';
+        const password = '123';
+        request(app)
+            .post('/users')
+            .send({ email, password })
+            .expect(400)
+            .end(done);
+    });
+
+    it('should not create user if email in use', (done) => {
+        const { email } = users[0];
+        const password = '123mmp';
+        request(app)
+            .post('/users')
+            .send({ email, password })
+            .expect(400)
             .end(done);
     });
 });

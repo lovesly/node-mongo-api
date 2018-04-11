@@ -64,7 +64,7 @@ UserSchema.statics.findByToken = function(token) {
     try {
         decoded = jwt.verify(token, 'abc123');
     } catch (e) {
-        console.log(e);
+        // console.log(e);
         return Promise.reject();
     }
     // I believe, mongoose findOne will call the built in toJSON method.
