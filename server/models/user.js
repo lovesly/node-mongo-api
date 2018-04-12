@@ -67,12 +67,32 @@ UserSchema.statics.findByToken = function(token) {
         // console.log(e);
         return Promise.reject();
     }
-    // I believe, mongoose findOne will call the built in toJSON method.
+    // the built-in toJSON
+    // is called inside somewhere res.send();
     // so we are actually override the toJSON method to hide some data.
     return User.findOne({
         _id: decoded._id,
         'tokens.token': token,
         'tokens.access': 'auth',
+    });
+};
+
+// eslint-disable-next-line
+UserSchema.statics.findByCrendentials = function(email, password) {
+    const User = this;
+    return User.findOne({ email }).then((user) => {
+        if (!user) {
+            return Promise.reject();
+        }
+        return new Promise((resolve, reject) => {
+            bcrypt.compare(password, user.password, (err, res) => {
+                if (res) {
+                    resolve(user);
+                } else {
+                    reject();
+                }
+            });
+        });
     });
 };
 
