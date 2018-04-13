@@ -58,6 +58,18 @@ UserSchema.methods.toJSON = function() {
 };
 
 // eslint-disable-next-line
+UserSchema.methods.removeToken = function(token) {
+    const user = this;
+    return user.update({
+        $pull: {
+            tokens: {
+                token,
+            },
+        },
+    });
+};
+
+// eslint-disable-next-line
 UserSchema.statics.findByToken = function(token) {
     const User = this;
     let decoded;
