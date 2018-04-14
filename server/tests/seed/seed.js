@@ -24,11 +24,13 @@ const users = [{
 const todos = [{
     _id: new ObjectID(),
     text: 'First test todo',
+    _creator: user1Id,
 }, {
     _id: new ObjectID(),
     text: 'Second test todo V2',
     completed: true,
     completedAt: 123,
+    _creator: user2Id,
 }];
 
 // eslint-disable-next-line
