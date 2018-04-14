@@ -71,6 +71,7 @@ describe('GET /todos/:id', () => {
     it('should return todo doc', (done) => {
         request(app)
             .get(`/todos/${todos[0]._id.toHexString()}`)
+            .set('x-auth', users[0].tokens[0].token)
             .expect(200)
             .expect((res) => {
                 expect(res.body.todo.text).toBe(todos[0].text);
@@ -78,10 +79,19 @@ describe('GET /todos/:id', () => {
             .end(done);
     });
 
+    it('should not return todo doc created by other user', (done) => {
+        request(app)
+            .get(`/todos/${todos[1]._id.toHexString()}`)
+            .set('x-auth', users[0].tokens[0].token)
+            .expect(404)
+            .end(done);
+    });
+
     it('should return 404 if todo not found', (done) => {
         const someId = new ObjectID();
         request(app)
             .get(`/todos/${someId.toHexString()}`)
+            .set('x-auth', users[0].tokens[0].token)
             .expect(404)
             .end(done);
     });
@@ -89,6 +99,7 @@ describe('GET /todos/:id', () => {
     it('should return 404 for non-object ids', (done) => {
         request(app)
             .get('/todos/123')
+            .set('x-auth', users[0].tokens[0].token)
             .expect(404)
             .end(done);
     });
@@ -99,6 +110,7 @@ describe('DELETE /toods/:id', () => {
         const id = todos[0]._id.toHexString();
         request(app)
             .delete(`/todos/${id}`)
+            .set('x-auth', users[0].tokens[0].token)
             .expect(200)
             .expect((res) => {
                 expect(res.body.todo._id).toBe(id);
@@ -114,10 +126,28 @@ describe('DELETE /toods/:id', () => {
             });
     });
 
+    it('should not remove a todo created by other user', (done) => {
+        const id = todos[0]._id.toHexString();
+        request(app)
+            .delete(`/todos/${id}`)
+            .set('x-auth', users[1].tokens[0].token)
+            .expect(404)
+            .end((err, res) => {
+                if (err) {
+                    return done(err);
+                }
+                Todo.findById(id).then((res) => {
+                    expect(res).toBeTruthy();
+                    done();
+                }).catch(err => done(err));
+            });
+    });
+
     it('should return 404 if todo not found', (done) => {
         const someId = new ObjectID();
         request(app)
             .delete(`/todos/${someId.toHexString}`)
+            .set('x-auth', users[0].tokens[0].token)
             .expect(404)
             .end(done);
     });
@@ -125,6 +155,7 @@ describe('DELETE /toods/:id', () => {
     it('should return 404 if non-object ids', (done) => {
         request(app)
             .delete('/todos/123')
+            .set('x-auth', users[0].tokens[0].token)
             .expect(404)
             .end(done);
     });
@@ -136,6 +167,7 @@ describe('PATCH /todos/:id', () => {
         const text = 'Some bullshit new text';
         request(app)
             .patch(`/todos/${id}`)
+            .set('x-auth', users[0].tokens[0].token)
             .send({
                 text,
                 completed: true,
@@ -152,11 +184,29 @@ describe('PATCH /todos/:id', () => {
         // sometimes we just validate them inside expect block. why?
     });
 
+    it('should not be able to update the todo created by other user', (done) => {
+        const id = todos[0]._id.toHexString();
+        const text = 'Some bullshit new text';
+        request(app)
+            .patch(`/todos/${id}`)
+            .set('x-auth', users[1].tokens[0].token)
+            .send({
+                text,
+                completed: true,
+            })
+            .expect(404)
+            .end(done);
+        // my question is, sometimes we need to validate the res inside end block.
+        // we do another query to the db, then validate the data.
+        // sometimes we just validate them inside expect block. why?
+    });
+
     it('should clear completedAt when todo is not completed', (done) => {
         const id = todos[1]._id.toHexString();
         const text = 'Some bullshit new text';
         request(app)
             .patch(`/todos/${id}`)
+            .set('x-auth', users[1].tokens[0].token)
             .send({
                 text,
                 completed: false,
@@ -254,8 +304,8 @@ describe('POST /users/login', () => {
                     return done(err);
                 }
                 User.findById(_id).then((user) => {
-                    expect(user.tokens[0]).toHaveProperty('access', 'auth');
-                    expect(user.tokens[0]).toHaveProperty('token', res.headers['x-auth']);
+                    expect(user.tokens[1]).toHaveProperty('access', 'auth');
+                    expect(user.tokens[1]).toHaveProperty('token', res.headers['x-auth']);
                     done();
                 }).catch(err => done(err));
             });
@@ -278,7 +328,7 @@ describe('POST /users/login', () => {
                     return done(err);
                 }
                 User.findById(_id).then((user) => {
-                    expect(user.tokens.length).toBe(0);
+                    expect(user.tokens.length).toBe(1);
                     done();
                 }).catch(err => done(err));
             });
