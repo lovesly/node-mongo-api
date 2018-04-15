@@ -304,8 +304,12 @@ describe('POST /users/login', () => {
                     return done(err);
                 }
                 User.findById(_id).then((user) => {
-                    expect(user.tokens[1]).toHaveProperty('access', 'auth');
-                    expect(user.tokens[1]).toHaveProperty('token', res.headers['x-auth']);
+                    // expect(user.tokens[1]).toHaveProperty('access', 'auth');
+                    // expect(user.tokens[1]).toHaveProperty('token', res.headers['x-auth']);
+                    expect(user.toObject().tokens[1]).toMatchObject({
+                        access: 'auth',
+                        token: res.headers['x-auth'],
+                    });
                     done();
                 }).catch(err => done(err));
             });
